@@ -1,0 +1,103 @@
+"management_groups":
+- "archetypes":
+  - "root_custom"
+  - "sovereign_l1_controls_custom"
+  "display_name": "Contoso Sovereign Landing Zone"
+  "exists": true
+  "id": "contoso-alz"
+  "parent_id": null
+- "archetypes":
+  - "platform_custom"
+  "display_name": "Contoso Platform"
+  "exists": false
+  "id": "contoso-platform"
+  "parent_id": "contoso-alz"
+- "archetypes":
+  - "landing_zones_custom"
+  "display_name": "Contoso Landing Zones"
+  "exists": false
+  "id": "contoso-landingzones"
+  "parent_id": "contoso-alz"
+- "archetypes":
+  - "public_custom"
+  "display_name": "Contoso Public"
+  "exists": false
+  "id": "contoso-public"
+  "parent_id": "contoso-landingzones"
+- "archetypes":
+  - "corp_custom"
+  - "sovereign_l2_controls_custom"
+  "display_name": "Contoso Corp"
+  "exists": false
+  "id": "contoso-corp"
+  "parent_id": "contoso-landingzones"
+- "archetypes":
+  - "online_custom"
+  - "sovereign_l2_controls_custom"
+  "display_name": "Contoso Online"
+  "exists": false
+  "id": "contoso-online"
+  "parent_id": "contoso-landingzones"
+- "archetypes":
+  - "local_custom"
+  "display_name": "Contoso Local"
+  "exists": false
+  "id": "contoso-local"
+  "parent_id": "contoso-landingzones"
+- "archetypes":
+  - "corp_custom"
+  - "sovereign_l2_controls_custom"
+  - "sovereign_l3_controls_custom"
+  "display_name": "Contoso Confidential Corp"
+  "exists": false
+  "id": "contoso-confidential-corp"
+  "parent_id": "contoso-landingzones"
+- "archetypes":
+  - "online_custom"
+  - "sovereign_l2_controls_custom"
+  - "sovereign_l3_controls_custom"
+  "display_name": "Contoso Confidential Online"
+  "exists": false
+  "id": "contoso-confidential-online"
+  "parent_id": "contoso-landingzones"
+- "archetypes":
+  - "sandbox_custom"
+  "display_name": "Contoso Sandbox"
+  "exists": false
+  "id": "contoso-sandbox"
+  "parent_id": "contoso-alz"
+- "archetypes":
+  - "security_custom"
+  - "sovereign_l2_controls_custom"
+  "display_name": "Contoso Security"
+  "exists": false
+  "id": "contoso-security"
+  "parent_id": "contoso-platform"
+- "archetypes":
+  - "management_custom"
+  - "sovereign_l2_controls_custom"
+  "display_name": "Contoso Management"
+  "exists": false
+  "id": "contoso-management"
+  "parent_id": "contoso-platform"
+- "archetypes":
+  - "connectivity_custom"
+  - "sovereign_l2_controls_custom"
+  "display_name": "Contoso Connectivity"
+  "exists": false
+  "id": "contoso-connectivity"
+  "parent_id": "contoso-platform"
+- "archetypes":
+  - "identity_custom"
+  - "sovereign_l2_controls_custom"
+  "display_name": "Contoso Identity"
+  "exists": false
+  "id": "contoso-identity"
+  "parent_id": "contoso-platform"
+- "archetypes":
+  - "decommissioned_custom"
+  "display_name": "Contoso Decommissioned"
+  "exists": false
+  "id": "contoso-decommissioned"
+  "parent_id": "contoso-alz"
+"name": "alz_custom"
