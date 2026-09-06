@@ -18,7 +18,7 @@ Replacements are denoted by the dollar-dollar curly braces token (e.g. $${starte
 You can define the Azure regions to use throughout the configuration.
 The first location will be used as the primary location, the second as the secondary location, and so on.
 */
-starter_locations = ["norwayeast", "swedencentral"]
+starter_locations = ["norwayeast", "swedencentral", "denmarkeast"]
 
 /*
 --- Custom Replacements ---
@@ -131,13 +131,39 @@ custom_replacements = {
 
     # IP Ranges Secondary
     # Regional Address Space: 10.1.0.0/16
-    secondary_hub_address_space                          = "10.1.0.0/16"
-    secondary_hub_virtual_network_address_space          = "10.1.0.0/22"
-    secondary_firewall_subnet_address_prefix             = "10.1.0.0/26"
-    secondary_firewall_management_subnet_address_prefix  = "10.1.0.192/26"
-    secondary_bastion_subnet_address_prefix              = "10.1.0.64/26"
-    secondary_gateway_subnet_address_prefix              = "10.1.0.128/27"
-    secondary_private_dns_resolver_subnet_address_prefix = "10.1.0.160/28"
+    secondary_hub_address_space                            = "10.1.0.0/16"
+    secondary_hub_virtual_network_address_space            = "10.1.0.0/22"
+    secondary_firewall_subnet_address_prefix               = "10.1.0.0/26"
+    secondary_firewall_management_subnet_address_prefix    = "10.1.0.192/26"
+    secondary_bastion_subnet_address_prefix                = "10.1.0.64/26"
+    secondary_gateway_subnet_address_prefix                = "10.1.0.128/27"
+    secondary_private_dns_resolver_subnet_address_prefix   = "10.1.0.160/28"
+    tertiary_firewall_enabled                              = true
+    tertiary_firewall_sku_tier                             = "Premium"
+    tertiary_firewall_management_ip_enabled                = true
+    tertiary_virtual_network_gateway_express_route_enabled = false
+    tertiary_virtual_network_gateway_vpn_enabled           = false
+    tertiary_private_dns_zones_enabled                     = true
+    tertiary_private_dns_auto_registration_zone_enabled    = true
+    tertiary_private_dns_resolver_enabled                  = true
+    tertiary_bastion_enabled                               = false
+
+    connectivity_hub_tertiary_resource_group_name = "rg-hub-$${starter_location_03}"
+    tertiary_virtual_network_name                 = "vnet-hub-$${starter_location_03}"
+    tertiary_firewall_name                        = "fw-hub-$${starter_location_03}"
+    tertiary_firewall_policy_name                 = "fwp-hub-$${starter_location_03}"
+    tertiary_firewall_public_ip_name              = "pip-fw-hub-$${starter_location_03}"
+    tertiary_firewall_management_public_ip_name   = "pip-fw-hub-mgmt-$${starter_location_03}"
+    tertiary_route_table_firewall_name            = "rt-hub-fw-$${starter_location_03}"
+    tertiary_route_table_user_subnets_name        = "rt-hub-std-$${starter_location_03}"
+    tertiary_private_dns_resolver_name            = "pdr-hub-dns-$${starter_location_03}"
+    tertiary_auto_registration_zone_name          = "$${starter_location_03}.azure.local"
+
+    tertiary_hub_address_space                          = "10.2.0.0/16"
+    tertiary_hub_virtual_network_address_space          = "10.2.0.0/22"
+    tertiary_firewall_subnet_address_prefix             = "10.2.0.0/26"
+    tertiary_firewall_management_subnet_address_prefix  = "10.2.0.192/26"
+    tertiary_private_dns_resolver_subnet_address_prefix = "10.2.0.160/28"
   }
 
   /*
@@ -151,6 +177,7 @@ custom_replacements = {
     ddos_protection_plan_resource_group_id   = "/subscriptions/$${subscription_id_connectivity}/resourcegroups/$${ddos_resource_group_name}"
     primary_connectivity_resource_group_id   = "/subscriptions/$${subscription_id_connectivity}/resourceGroups/$${connectivity_hub_primary_resource_group_name}"
     secondary_connectivity_resource_group_id = "/subscriptions/$${subscription_id_connectivity}/resourceGroups/$${connectivity_hub_secondary_resource_group_name}"
+    tertiary_connectivity_resource_group_id  = "/subscriptions/$${subscription_id_connectivity}/resourceGroups/$${connectivity_hub_tertiary_resource_group_name}"
     dns_resource_group_id                    = "/subscriptions/$${subscription_id_connectivity}/resourceGroups/$${dns_resource_group_name}"
   }
 
@@ -316,6 +343,13 @@ connectivity_resource_groups = {
   vnet_secondary = {
     name     = "$${connectivity_hub_secondary_resource_group_name}"
     location = "$${starter_location_02}"
+    settings = {
+      enabled = true
+    }
+  }
+  vnet_tertiary = {
+    name     = "$${connectivity_hub_tertiary_resource_group_name}"
+    location = "$${starter_location_03}"
     settings = {
       enabled = true
     }
@@ -523,6 +557,62 @@ hub_virtual_networks = {
       bastion_public_ip = {
         name = "$${secondary_bastion_host_public_ip_name}"
       }
+    }
+  }
+  tertiary = {
+    location          = "$${starter_location_03}"
+    default_parent_id = "$${tertiary_connectivity_resource_group_id}"
+    enabled_resources = {
+      firewall                              = "$${tertiary_firewall_enabled}"
+      firewall_policy                       = true
+      bastion                               = "$${tertiary_bastion_enabled}"
+      virtual_network_gateway_express_route = "$${tertiary_virtual_network_gateway_express_route_enabled}"
+      virtual_network_gateway_vpn           = "$${tertiary_virtual_network_gateway_vpn_enabled}"
+      private_dns_zones                     = "$${tertiary_private_dns_zones_enabled}"
+      private_dns_resolver                  = "$${tertiary_private_dns_resolver_enabled}"
+    }
+    hub_virtual_network = {
+      name                          = "$${tertiary_virtual_network_name}"
+      address_space                 = ["$${tertiary_hub_virtual_network_address_space}"]
+      routing_address_space         = ["$${tertiary_hub_address_space}"]
+      route_table_name_firewall     = "$${tertiary_route_table_firewall_name}"
+      route_table_name_user_subnets = "$${tertiary_route_table_user_subnets_name}"
+      mesh_peering_enabled          = true
+      subnets                       = {}
+    }
+    firewall = {
+      subnet_address_prefix            = "$${tertiary_firewall_subnet_address_prefix}"
+      management_subnet_address_prefix = "$${tertiary_firewall_management_subnet_address_prefix}"
+      name                             = "$${tertiary_firewall_name}"
+      sku_name                         = "AZFW_VNet"
+      sku_tier                         = "$${tertiary_firewall_sku_tier}"
+      management_ip_enabled            = "$${tertiary_firewall_management_ip_enabled}"
+      default_ip_configuration = {
+        public_ip_config = {
+          name = "$${tertiary_firewall_public_ip_name}"
+        }
+      }
+      management_ip_configuration = {
+        public_ip_config = {
+          name = "$${tertiary_firewall_management_public_ip_name}"
+        }
+      }
+    }
+    firewall_policy = {
+      name = "$${tertiary_firewall_policy_name}"
+      sku  = "$${tertiary_firewall_sku_tier}"
+    }
+    private_dns_zones = {
+      parent_id = "$${dns_resource_group_id}"
+      private_link_private_dns_zones_regex_filter = {
+        enabled = true
+      }
+      auto_registration_zone_enabled = "$${tertiary_private_dns_auto_registration_zone_enabled}"
+      auto_registration_zone_name    = "$${tertiary_auto_registration_zone_name}"
+    }
+    private_dns_resolver = {
+      subnet_address_prefix = "$${tertiary_private_dns_resolver_subnet_address_prefix}"
+      name                  = "$${tertiary_private_dns_resolver_name}"
     }
   }
 }
