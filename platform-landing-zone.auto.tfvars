@@ -36,7 +36,7 @@ custom_replacements = {
     defender_email_security_contact = "janegilring@microsoft.com"
 
     # Resource provisioning global connectivity
-    ddos_protection_plan_enabled = true
+    ddos_protection_plan_enabled = false
 
     # Resource provisioning primary connectivity
     primary_firewall_enabled                                             = true
