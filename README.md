@@ -7,7 +7,7 @@ featured_image: ""
 categories: []
 tags: [Azure, ALZ, SLZ, Terraform, Multi-Region]
 ai_note: AI-assisted documentation based on the configured demo and verified workflow results.
-summary: Two-region hub-and-spoke SLZ demo using the ALZ Terraform Accelerator, AVM and GitHub OIDC, without a paid DDoS plan.
+summary: Three-region hub-and-spoke SLZ demo using the ALZ Terraform Accelerator, AVM and GitHub OIDC, without a paid DDoS plan.
 post_date: 2026-09-06
 ---
 
@@ -15,23 +15,29 @@ post_date: 2026-09-06
 
 This repository contains the Contoso platform landing zone configuration generated
 by the **Azure Landing Zones Terraform Accelerator** using **Azure Verified
-Modules (AVM)**. It demonstrates an SLZ governance hierarchy and a two-region
+Modules (AVM)**. It demonstrates an SLZ governance hierarchy and a three-region
 hub-and-spoke network with Azure Firewall Premium.
 
 **This is a demo.** The `prod` suffix is a naming choice, not a production-readiness
 or compliance claim. The GitHub organization uses the Free plan, so these
 repositories are public. Never commit credentials, Terraform state or saved plans.
 
-**Documentation snapshot: 6 September 2026.** Bootstrap completed. The no-DDoS
-platform plan passed, but apply failed on Public IP updates with
-`SubscriptionNotRegisteredForFeature`, naming
-`Microsoft.Network/AllowBringYourOwnPublicIpAddress`. The platform is partially
-provisioned and not verified complete. Investigate the actual Public IP request
-and provider/module behavior before choosing a fix; do not blindly register a
-feature, destroy resources or rerun the old plan. Consult the
-[current delivery run](https://github.com/janegilring-demo/contoso-prod/actions/runs/34014306810)
-for the latest result. Architecture diagrams below describe the configured target,
-not an assertion that every component is deployed or compliant.
+**Documentation snapshot: 6 September 2026.** The initial feature-registration
+issue was resolved and the two-region platform deployed successfully. A later
+policy-stage apply failed while replacing policy-tagged public IPs. Recovery
+[PR #6](https://github.com/janegilring-demo/contoso-prod/pull/6) preserved the
+required tags and NSG associations and restored both Bastion hosts; recovery run
+[34024636892](https://github.com/janegilring-demo/contoso-prod/actions/runs/34024636892)
+succeeded, with read-only acceptance at 09:43 UTC.
+
+Denmark [PR #5](https://github.com/janegilring-demo/contoso-prod/pull/5) is merged.
+Its fresh delivery plan matched CI: 196 additions, 10 updates, zero destruction.
+The approved
+[regional run](https://github.com/janegilring-demo/contoso-prod/actions/runs/34025654500)
+succeeded at 10:11 UTC. Read-only acceptance at 10:11:37 UTC verified the Danish
+firewall, resolver, four new peerings, routes, and representative private DNS links.
+Diagrams do not imply tested workload connectivity, automatic failover, or a
+compliance certification.
 
 ## Configuration
 
@@ -39,6 +45,7 @@ not an assertion that every component is deployed or compliant.
 | --- | --- |
 | Primary region | Norway East (`norwayeast`) |
 | Secondary region | Sweden Central (`swedencentral`) |
+| Tertiary region | Denmark East (`denmarkeast`); firewall and DNS profile only |
 | Platform subscriptions | Management, Connectivity and Identity |
 | Existing parent | Tenant Root Group |
 | Intermediate root | `contoso-alz` |
@@ -91,7 +98,8 @@ The SLZ model uses preview built-in initiatives aligned with:
 The older Global and Confidential Sovereignty Baseline initiatives are historical
 and were replaced in the April 2026 library update. Verify the selected library's
 actual assignment IDs, effects and parameters, not only names or group existence.
-The configured allowed locations are exactly `norwayeast` and `swedencentral`.
+The effective allowed locations are `norwayeast`, `swedencentral`, and
+`denmarkeast`. This permits three geographies, not Denmark-only residency.
 
 Local is intended for Azure Local workloads and Azure-public workloads with an
 exit requirement to Azure Local disconnected operations. It is not a central
@@ -115,17 +123,45 @@ flowchart LR
       hubse --- basse["Azure Bastion"]
       fwse -->|"DNS proxy"| dnsse["Private DNS Resolver"]
     end
+    subgraph denmark["Denmark East - tertiary"]
+      hubdk["Hub VNet 10.2.0.0/22"] --- fwdk["Azure Firewall Premium + policy"]
+      fwdk -->|"DNS proxy"| dnsdk["Private DNS Resolver"]
+    end
     hubno <-->|"Hub peering"| hubse
+    hubno <-->|"Hub peering"| hubdk
+    hubse <-->|"Hub peering"| hubdk
     zones["Private DNS zones and VNet links"] --- hubno
     zones --- hubse
+    zones --- hubdk
   end
   spokefuture["Future workload spokes - not supplied by this demo"] -.-> hubno
   spokefuture -.-> hubse
 ```
 
-Regional address allocations are `10.0.0.0/16` and `10.1.0.0/16`; the actual hub
-VNets use the `/22` ranges shown above. Future spokes use the regional firewall
-as DNS proxy and the generated user-subnet routes for traffic inspection.
+Regional routing reservations are `10.0.0.0/16`, `10.1.0.0/16`, and `10.2.0.0/16`;
+the actual hub VNets use the `/22` ranges shown above. Future spokes use the
+regional firewall as DNS proxy and the generated user-subnet routes for inspection.
+Denmark has no Bastion, VPN gateway, or ExpressRoute gateway. Shared private DNS
+zones remain owned in Norway. Logging, state, and Automation also remain in Norway.
+
+The connectivity caller uses a locally maintained derivative of AVM pattern
+version 0.17.2 to preserve inherited MCAPS public-IP tags and existing subnet NSG
+references. See [patch provenance](modules/contoso-connectivity/PATCH-NOTES.md).
+This is not a newly certified AVM release. Policy-created NSGs remain externally
+owned; Terraform retains their verified associations without importing or deleting
+the NSGs. The Danish resolver subnet had no NSG association at acceptance, so no
+unverified NSG reference was added. Recheck later plans for a newly policy-created
+association and preserve its verified ID before applying. Do not guess an NSG ID.
+
+Verified Danish private IPs are firewall `10.2.0.4` and resolver `10.2.0.164`.
+Read-only acceptance checked blob, Key Vault, and `denmarkeast.azure.local` VNet
+links, not every DNS zone or data-plane query. No Danish gateways, Bastion or paid
+DDoS plan were found.
+
+Manual firewall power runbooks are managed separately by scripts in the local
+`msftdemo/azure/automation/firewall-power` folder, not by this Terraform root.
+No schedules, job-schedule links, or webhooks are part of that setup. Validation
+does not stop traffic; actual deallocation requires an intentional outage decision.
 
 The Management subscription hosts monitoring resources such as Log Analytics,
 data collection rules and the AMA managed identity. No identity-service workload,
@@ -179,9 +215,29 @@ it does not change branch-protection requirements.
    the paid DDoS plan and removed `Enable-DDoS-VNET` from the connectivity and
    landing-zone archetypes. No replacement paid DDoS SKU was enabled.
 5. [CI run 34014115414](https://github.com/janegilring-demo/contoso-prod/actions/runs/34014115414)
-   passed. The reviewed delivery plan contains 1509 additions, no changes or
-  deletions, and no paid DDoS resource. Apply subsequently failed with the
-  Public IP feature error described above; no complete-deployment claim is made.
+  passed with a 1509/0/0 plan and no paid DDoS resource. The first apply failed on
+  feature registration; subsequent run `34016112611` deployed the baseline.
+6. Policy PR #4 added Denmark to the requested locations. Its initial apply
+  failed on attached VPN public-IP deletion, after recreating the two Bastion
+  public IPs. No dependent firewall/gateway deletion was performed.
+7. Recovery PR #6 applied a 2/24/0 plan without public-IP replacement or NSG
+  removal. Live checks verified restored Bastions, working resource provisioning,
+  all ten original-region public-IP tags, four NSG associations, and the
+  three-region location policy with Deny intact.
+8. Denmark PR #5 was rebased onto recovery and approved with a 196/10/0 plan.
+  Delivery and the scoped control-plane acceptance both passed.
+
+**Known logging gap:** ALZ assignment `Deploy-Diag-LogsCat` failed diagnostic
+remediation for both Danish firewall public IPs because it requested category
+group `audit`, while those resources advertise only `allLogs`. The failures are
+separate from successful public-IP provisioning. The policy remains enabled;
+changing shared logging scope and ingestion cost requires review. Regional
+acceptance does not claim diagnostic-setting or workload compliance.
+
+Terraform validation, focused configuration checks, and TFLint passed locally.
+The recovery Checkov scan had 27 passes, 26 inherited `CKV_TF_1` registry-source
+findings and zero parsing errors. AVM contributor checks could not run because
+Docker is unavailable. These are not clean, exhaustive security-scan results.
 
 Before declaring the demo complete, verify regional provisioning, hub peerings,
 firewall policies, gateways, Bastion, DNS endpoints/zones/links, subscription
@@ -192,7 +248,8 @@ Policy evaluation/propagation and workload compliance are separate checks.
 
 Reference fixed cost without the paid DDoS plan: **USD 5,333.72/month**, reduced
 by **USD 2,944/month** from the source scenario's USD 8,277.72. These are westus
-estimates dated 2 April 2026, not Norway/Sweden prices or the current bill. Usage,
+two-region estimates dated 2 April 2026, not Nordic prices, a Denmark quote, or
+the current bill. The Danish firewall, resolver and public IPs add metered cost. Usage,
 Defender, logging, egress, circuits and bootstrap add cost. Built-in Azure DDoS
 infrastructure protection remains, but is not equivalent to DDoS Network Protection.
 
