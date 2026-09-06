@@ -239,7 +239,8 @@ management_group_settings = {
     email_security_contact                      = "$${defender_email_security_contact}"
     allowed_locations = [
       "norwayeast",
-      "swedencentral"
+      "swedencentral",
+      "denmarkeast"
     ]
   }
   subscription_placement = {
