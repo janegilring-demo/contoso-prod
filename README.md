@@ -23,8 +23,12 @@ or compliance claim. The GitHub organization uses the Free plan, so these
 repositories are public. Never commit credentials, Terraform state or saved plans.
 
 **Documentation snapshot: 6 September 2026.** Bootstrap completed. The no-DDoS
-platform plan passed, and its apply was approved; completed regional provisioning
-and acceptance checks are not yet confirmed. Consult the
+platform plan passed, but apply failed on Public IP updates with
+`SubscriptionNotRegisteredForFeature`, naming
+`Microsoft.Network/AllowBringYourOwnPublicIpAddress`. The platform is partially
+provisioned and not verified complete. Investigate the actual Public IP request
+and provider/module behavior before choosing a fix; do not blindly register a
+feature, destroy resources or rerun the old plan. Consult the
 [current delivery run](https://github.com/janegilring-demo/contoso-prod/actions/runs/34014306810)
 for the latest result. Architecture diagrams below describe the configured target,
 not an assertion that every component is deployed or compliant.
@@ -176,7 +180,8 @@ it does not change branch-protection requirements.
    landing-zone archetypes. No replacement paid DDoS SKU was enabled.
 5. [CI run 34014115414](https://github.com/janegilring-demo/contoso-prod/actions/runs/34014115414)
    passed. The reviewed delivery plan contains 1509 additions, no changes or
-   deletions, and no paid DDoS resource. Apply completion remains to be verified.
+  deletions, and no paid DDoS resource. Apply subsequently failed with the
+  Public IP feature error described above; no complete-deployment claim is made.
 
 Before declaring the demo complete, verify regional provisioning, hub peerings,
 firewall policies, gateways, Bastion, DNS endpoints/zones/links, subscription
